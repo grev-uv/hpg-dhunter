@@ -12,7 +12,7 @@ HPG-Dhunter is a powerful real-time visualizer tool that uses the high performan
 The visualization and DMR detection process follows a pipeline that begins selecting the cases and control files. After that, the ratio between the methylated coverage and the total coverage over each chromosome position is calculated and upload to the global memory of the GPU device. With all the data at the GPU, it is possible to draw the wavelet transform signal and to find the DMRs in real-time.
 
 This is the UI:
-[](images/dmr_visualizer.png)
+![](images/numeracion_interface_v4.png)
 
 where:
 1. Display area of the methylated signal at the selected region.
