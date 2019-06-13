@@ -75,7 +75,7 @@ It can zoom the displayed signal clicking the left mouse button at the first pos
 
 If the left mouse button is clicked and released over a position in the displayed signal, a new tab is open at the default web navigator addressing the url https://grch37.ensembl.org/Homo_sapiens/Location_with_the_clicked_position_(± 500 positions)
 
-There is an important change to do before launch the compilation. The file [hpg_dhunter.pro](src/hpg_dhunter.pro:59) needs the path to cuda sdk installation at line 58:
+There is an important change to do before launch the compilation. The file [hpg_dhunter.pro](src/hpg_dhunter.pro#L59) needs the path to cuda sdk installation at line 58:
 ```
 CUDA_DIR = /path/to/cuda/sdk/cuda
 ```
