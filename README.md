@@ -15,8 +15,8 @@ where:
 2. Shows:
    - Pointer position inside the chromosome selected region.
    - Maximum coverage per sample at the pointer position zone.
-   - Displacement of the selected region displaying the new signal region
-   - Modify the width of the displayed signal (number of displayed positions)
+3. Displacement of the selected region displaying the new signal region
+4. Modify the width of the displayed signal (number of displayed positions)
 5. Select the kind of signal to analyze (mC / hmC)
 6. Select the direction to analyze (forward and/or reverse).
 7. Select the chromosome to analyze.
