@@ -1,10 +1,6 @@
 # HPG-Dhunter
 
-**HPG-Dhunter** is a real-time DNA methylation visualizer. It is based on Discrete Wavelet Transform (DWT) analyzer as a Differentially Methylated Regions (DMRs) finder and is the newcomer to the **HPG-Suite**.
-
-*HPG-Suite* began with [**HPG-Methyl**](https://github.com/grev-uv/hpg-methyl), an ultrafast and highly sensitive Next-Generation Sequencing read mapper and methylation context extractor, that works with single-end or paired-end .fastq files and provides .bam files. The following income tool was [**HPG-Hmapper**](https://github.com/grev-uv/hpg-hmapper), a parallel software tool for analyzing DNA hydroximethylation data, that works with the .bam files from HPG-Methyl and provides .csv files, mapping the number of Cs, noCs, 5mCs and 5hmCs reads per position, chromosome and sense (forward, reverse).
-
-HPG-Dhunter is a powerful real-time visualizer tool that uses the high performance parallel computation of GPUs and CUDA application programming interface model for analyze the DNA methylation and show the results, minimizing the CPU-GPU communication.
+**HPG-Dhunter** is an interactive tool for detecting Differentially Methylathed Regions (DMRs) and  visualizing DNA methylation signals. It is based on building a methylation signal from the information yielded by HPG-HMapper, and using a NVidia GPU and the CUDA programming model to compute the Discrete Wavelet Transform (DWT) of this methylation signal. The transformation of the signals in turn allows the comparison of different signals at low resolution levels, easily identifying DMRs with a low workload, when compared to other strategies. **HPG-Dhunter** is part of the **HPG-MSuite**.
 
 ## Handling
 **HPG-Dhunter** shows a user interface (UI) whose design has been developed according to the indications of the INCLIVA researchers in genome biology team. HPG-Dhunter background has been developed from the research about the use of wavelet transform over the methylated files treated like a signal as you can read in this [paper](https://link.springer.com/article/10.1007%2Fs11227-018-2670-5).
@@ -81,7 +77,7 @@ CUDA_DIR = /path/to/cuda/sdk/cuda
 ```
 
 ## System requirements
-The HPG-Dhunter visualizer is the next step after HPG-HMapper detector and mapper of the methylated and hidroximethylated regions in the work-flow of HPG-suite. Then, the system requirement needs to be, at least, the same, adding a GPU device.
+The HPG-Dhunter visualizer is the next step after HPG-HMapper detector and mapper of the methylated and hidroximethylated regions in the work-flow of HPG-suite. 
 HPG-Dhunter should work properly in a station with the following set-up:
 - A 64 bit Intel CPU compatible with SSE4.2.
 - The DNA data for DMR tasks needs as adjacent memory as the number of samples by the length of the largest chromosome to be analized. This parameter has a direct relation with the global memory available of the GPU device. The test was done with 32 MB of RAM.
