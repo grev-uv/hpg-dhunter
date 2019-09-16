@@ -83,11 +83,13 @@ HPG-Dhunter should work properly in a station with the following set-up:
 - The DNA data for DMR tasks needs as adjacent memory as the number of samples by the length of the largest chromosome to be analized. This parameter has a direct relation with the global memory available of the GPU device. The test was done with 32 MB of RAM.
 - The amount of samples that HPG-Dhunter can analize at the same time is directly dependent with the amount of the device memory. Working with a Nvidia GeForce GTX 1080 with 8 GB of GRAM, is possible to analyze and visualize up to six samples of chromosome-21 or up to four chromosome-10 or up to two chromosome-1 at the same time.
 - The CUDA compilation is configured to a single device with Nvidia Pascal GPU architecture. So, the devices that will work properly are Titan XP and X models, Tesla P40, P6 and P4 models, Quadro P6000, P5000, P4000 models, GeForce GTX 1080Ti, 1080, 1070Ti, 1070 models, and others easy to find here.
-- The Nvidia driver is needed (v384 or higher).
-- The CUDA API is needed(v9 or higher).
+- The Nvidia driver is needed (v384 or higher). It can be downloaded and installed easily following the Nvidia [instructions](https://www.nvidia.com/Download/index.aspx?lang=en-us) or following this [tutorial](https://www.addictivetips.com/ubuntu-linux-tips/install-latest-nvidia-gpu-drivers-on-linux/).
+- The CUDA API is needed(v9 or higher). It can  be downloaded and installed following the Nvidia developers [instructions](https://developer.nvidia.com/cuda-downloads?target_os=Linux).
 
 ## Build
 The way to build HPG-Dhunter in your system is opening the software as a project inside an installed QtCreator (> v4.5, Qt > v5.8, GCC 5) IDE and build it from there.
+
+As you can see, a QtCreator installation is needed. If you don’t have it, it can be downloaded and installed as an OpenSource user following the QtCreator [instructions](https://www.qt.io/download-qt-installer?hsCtaTracking=9f6a2170-a938-42df-a8e2-a9f0b1d6cdce|6cb0de4f-9bb5-4778-ab02-bfb62735f3e5).
 
 In the next future, another available way will be to handling this software as a cloud service.
 
