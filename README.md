@@ -1,6 +1,6 @@
 # HPG-Dhunter
 
-If you want to use this tool just now, there is an executable file for Linux x86_64 systems. This compressed file is available at [releases page](../../releases). But, previously, CUDA and Nvidia drivers must be installed in your system. For that, you can go to [System requirements section](README.MD#L81)
+If you want to use this tool just now, there is an executable file for Linux x86_64 systems. This compressed file is available at [releases page](../../releases). But, previously, CUDA and Nvidia drivers must be installed in your system. For that, you can go to System requirements section
 
 **HPG-Dhunter** is an interactive tool for detecting Differentially Methylathed Regions (DMRs) and  visualizing DNA methylation signals. It is based on building a methylation signal from the information yielded by HPG-HMapper, and using a NVidia GPU and the CUDA programming model to compute the Discrete Wavelet Transform (DWT) of this methylation signal. The transformation of the signals in turn allows the comparison of different signals at low resolution levels, easily identifying DMRs with a low workload, when compared to other strategies. **HPG-Dhunter** is part of the **HPG-MSuite**.
 
