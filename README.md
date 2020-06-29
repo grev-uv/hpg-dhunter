@@ -53,7 +53,7 @@ where:
 20. Dial to select the wavelet transform level for signal comparison at DMR detection.
 21. Open the file explorer to select folder and file name to save the DMRs founded.
 22. Dial to select the minimum coverage of signal.
-23. Select directly de minimum coverage of signal.
+23. Select directly the minimum coverage of signal.
 24. Fine width modification of displayed signal
 25. Positions of the gen and display
   - lowest gen position of the samples.
