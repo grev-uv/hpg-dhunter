@@ -60,7 +60,7 @@
 #define STOP_TIMER(name)
 #endif
 
-#define DMR_THRESHOLD   0.5 // valor inicial para umbral de cálculo de DMRs
+#define DMR_THRESHOLD   0.3 // valor inicial para umbral de cálculo de DMRs
 
 
 
@@ -399,10 +399,14 @@ private:
 
     /** ***********************************************************************************************
       *  \brief variable para control de ancho de segmento a analizar
-      *  \param ancho_ventana   valor del ancho de ventana en el momento se aactiva el ajuste fino
+      *  \param paso_visualizacion  ancho ventana posiciones por nivel de visualización
+      *                             útil para comenzar los cálculos de transformada en posición correcta
+      *                             y se visualice la señal siempre igual para los mismos tramos
+      *  \param ancho_ventana       valor del ancho de ventana en el momento se aactiva el ajuste fino
       * ***********************************************************************************************
       */
-    int ancho_ventana;
+    uint paso_visualizacion;
+    int  ancho_ventana;
 
     /** ***********************************************************************************************
       *  \brief variables para control de datos de cromosoma y hardware

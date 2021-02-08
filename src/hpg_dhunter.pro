@@ -62,7 +62,8 @@ CUDA_DIR      = /usr/local/cuda
 INCLUDEPATH  += $$CUDA_DIR/include
 QMAKE_LIBDIR += $$CUDA_DIR/lib64
 
-# suda architecture
+# cuda architecture
+#CUDA_ARCH     = sm_35       # minimum compute capability (version) for dynamic parallelism feature support
 CUDA_ARCH     = sm_61
 #CUDA_ARCH    = sm_50
 #CUDA_ARCH    = sm_52

@@ -40,7 +40,7 @@
 
 #define BLOCK_SIZE  1024		// número de hilos por bloque de GPU
 #define AJUSTE_PLOT 1.70        // ajusta eje Y de gráfica a AJUSTE_PLOT
-#define DESPLAZAMIENTO_DIBUJO 0.97
+#define DESPLAZAMIENTO_DIBUJO 0.98
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); } // para gestión de errores en GPU
 
 

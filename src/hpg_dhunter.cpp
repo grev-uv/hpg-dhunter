@@ -132,6 +132,7 @@ void HPG_Dhunter::on_open_file_clicked()
         ui->analiza->setEnabled(false);
         ui->dmrs->setEnabled(false);
         ui->num_CpG_x_region->setEnabled(false);
+        ui->min_covSamples_x_region->setEnabled(false);
         ui->threshold->setEnabled(false);
         ui->dmr_dwt_level->setEnabled(false);
         ui->save_dmr_list->setEnabled(false);
@@ -449,6 +450,7 @@ void HPG_Dhunter::on_open_control_clicked()
         ui->analiza->setEnabled(false);
         ui->dmrs->setEnabled(false);
         ui->num_CpG_x_region->setEnabled(false);
+        ui->min_covSamples_x_region->setEnabled(false);
         ui->threshold->setEnabled(false);
         ui->dmr_dwt_level->setEnabled(false);
         ui->save_dmr_list->setEnabled(false);
@@ -745,49 +747,65 @@ void HPG_Dhunter::on_down_control_clicked()
 // ************************************************************************************************
 void HPG_Dhunter::on_scroll_adn_valueChanged(int value)
 {
-    // actualizar los valores de los límites de la ventana de datos a analizar
-    ui->rango_inferior->setText(QString::number(value));
-    ui->rango_superior->setText(QString::number(value + ui->scroll_adn->pageStep()));
+    // actualiza la posición inicial correctamente conforme al nivel de transformada
+    paso_visualizacion = uint(pow(2, ui->slider_nivel->value()));
+    int valor          = value - int(limite_inferior);
+    valor              = valor - int(uint(valor) % paso_visualizacion);
 
-    // actualizar los valores de los límites del rango de datos a analizar en GPU
-    cuda_data.rango_inferior = size_t(value) - size_t(limite_inferior);
-    cuda_data.rango_superior = size_t(value) - size_t(limite_inferior) + size_t(ui->scroll_adn->pageStep());
+    // actualiza los valores de los límites de la ventana de datos a analizar
+    ui->rango_inferior->setText(QString::number(uint(valor) + limite_inferior));
+    ui->rango_superior->setText(QString::number(uint(valor) + limite_inferior + uint(ui->scroll_adn->pageStep())));
+
+    // actualiza los valores de los límites del rango de datos a analizar en GPU
+    cuda_data.rango_inferior = size_t(valor);
+    cuda_data.rango_superior = size_t(valor) + size_t(ui->scroll_adn->pageStep());
 }
 
 // ************************************************************************************************
 void HPG_Dhunter::on_page_valueChanged(int position)
 {
+    // actualiza la posición inicial correctamente conforme al nivel de transformada
+    paso_visualizacion = uint(pow(2, ui->slider_nivel->value()));
+
     // actualiza los valores del control de scroll_adn
     // tanto el ancho de ventana como su valor inicial
     uint nuevo_maximo = limite_superior - uint(position);
-    uint nuevo_valor = uint(ui->scroll_adn->value() + ((ui->scroll_adn->pageStep() - position) * 0.5));
+    uint nuevo_valor  = uint(ui->scroll_adn->value()) + uint(0.5 * (ui->scroll_adn->pageStep() - position));
+    if (int(nuevo_valor) - int(limite_inferior) < 0)
+        nuevo_valor = 0;
+    else
+        nuevo_valor = nuevo_valor - limite_inferior;
+    nuevo_valor = nuevo_valor - uint(nuevo_valor % paso_visualizacion);
 
     ui->scroll_adn->setPageStep(position);
     ui->scroll_adn->setMaximum(int(nuevo_maximo));
-    ui->scroll_adn->setValue(int(nuevo_valor));
+    ui->scroll_adn->setValue(int(nuevo_valor + limite_inferior));
 
     // actualiza los valores en ventana de visualización
     ui->ancho_ventana->setText((QString::number(ui->scroll_adn->pageStep())));
     ui->rango_inferior->setText(QString::number(ui->scroll_adn->value()));
     ui->rango_superior->setText(QString::number(ui->scroll_adn->value() + ui->scroll_adn->pageStep()));
 
-    // actualiza en número máximo de niveles que puede transformar
+    // actualiza el número máximo de niveles que puede transformar
     ui->slider_nivel->setMaximum(int(log2(ui->scroll_adn->pageStep())));
     if (ui->slider_nivel->maximum() <= ui->slider_nivel->value())
         ui->slider_nivel->setValue(ui->slider_nivel->maximum() - 1);;
 
     // actualizar los valores de los límites del rango de datos a analizar en GPU
     // dentro de la estructura de variables de control cuda
-    if (nuevo_valor > limite_inferior)
-        cuda_data.rango_inferior = nuevo_valor - limite_inferior;
-    else
-        cuda_data.rango_inferior = 0;
-    cuda_data.rango_superior = nuevo_valor - limite_inferior + uint(ui->scroll_adn->pageStep());
+//    if (nuevo_valor > limite_inferior)
+    cuda_data.rango_inferior = nuevo_valor;
+//    else
+//        cuda_data.rango_inferior = 0;
+    cuda_data.rango_superior = nuevo_valor + uint(ui->scroll_adn->pageStep());
 }
 
 // ************************************************************************************************
 void HPG_Dhunter::on_rango_superior_editingFinished()
 {
+    // actualiza la posición inicial correctamente conforme al nivel de transformada
+    paso_visualizacion = uint(pow(2, ui->slider_nivel->value()));
+
     uint arg1 = ui->rango_superior->text().toUInt();
     uint inicio = uint(ui->scroll_adn->value());
 
@@ -810,24 +828,33 @@ void HPG_Dhunter::on_rango_superior_editingFinished()
             else
             {
                 ui->scroll_adn->setValue(int(arg1) - ui->page->value());
-                cuda_data.rango_inferior = uint(ui->scroll_adn->value()) - limite_inferior;
+                uint aux = uint(ui->scroll_adn->value()) - limite_inferior;
+                aux     -= (aux % paso_visualizacion);
+                cuda_data.rango_inferior = aux;
+                ui->scroll_adn->setValue(int(aux + limite_inferior));
             }
         }
     }
 
     // lanza la transformación
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
 // ************************************************************************************************
 void HPG_Dhunter::on_rango_inferior_editingFinished()
 {
+    // actualiza la posición inicial correctamente conforme al nivel de transformada
+    paso_visualizacion = uint(pow(2, ui->slider_nivel->value()));
+
     uint arg1 = ui->rango_inferior->text().toUInt();
 
     if (arg1 < limite_superior &&  arg1 > limite_inferior)
     {
-        cuda_data.rango_inferior = arg1 - limite_inferior;
+        uint aux = arg1 - limite_inferior;
+        aux     -= uint(aux % paso_visualizacion);
+        cuda_data.rango_inferior = aux;
+        ui->rango_inferior->setText(QString::number(cuda_data.rango_inferior + limite_inferior));
 
         if (arg1 < uint(ui->scroll_adn->value() + ui->scroll_adn->pageStep()))
         {
@@ -851,7 +878,7 @@ void HPG_Dhunter::on_rango_inferior_editingFinished()
     }
 
     // lanza la transformación
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
@@ -862,7 +889,7 @@ void HPG_Dhunter::on_slider_nivel_sliderReleased()
     cuda_data.levels = ui->slider_nivel->value();
 
     // lanza la transformación
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
@@ -870,7 +897,7 @@ void HPG_Dhunter::on_slider_nivel_sliderReleased()
 void HPG_Dhunter::on_scroll_adn_sliderReleased()
 {
     // lanza la transformación
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
@@ -887,7 +914,7 @@ void HPG_Dhunter::on_page_sliderReleased()
     page_pressed = true;
 
     // lanza la transformación
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
@@ -928,7 +955,7 @@ void HPG_Dhunter::on_fine_tunning_sliderReleased()
     fine_tunning_pressed = false;
 
     // lanza la transformación si hay ficheros para mostrar
-    if (ui->wavelet_file->blockCount() != 1)
+    if (ui->wavelet_file->blockCount() >= 1)
         dibuja();
 }
 
@@ -1053,14 +1080,18 @@ void HPG_Dhunter::on_reverse_clicked()
 // ************************************************************************************************
 void HPG_Dhunter::mouse_coordinates_ogl(int x)
 {
+//    qDebug() << " puntero en zona gŕafica";
+
     QString linea = "";
-    uint factor_escala = uint(ui->ancho_ventana->text().toFloat() / ui->ventana_opengl->width());
-    int cobertura_maxima = 0;
+//    uint factor_escala = uint(ui->ancho_ventana->text().toFloat() / ui->ventana_opengl->width());
+//    int cobertura_maxima = 0;
 
     // posición del puntero en la ventana de visualización
     uint posicion = ui->rango_inferior->text().toUInt() +
                     uint(x * (ui->ancho_ventana->text().toFloat()
                             / ui->ventana_opengl->width()));
+    linea.append(QString::number(posicion));
+/*
     linea.append(QString::number(posicion) + " coverage: ");
 
     // cobertura por muestra en cada posición
@@ -1100,19 +1131,25 @@ void HPG_Dhunter::mouse_coordinates_ogl(int x)
 
         linea.append(" s" + QString::number(i+1) + " " + QString::number(cobertura_maxima));
     }
-
-    if (ui->wavelet_file->blockCount() != 1 && !to_load && !ui->analiza->isEnabled())
+*/
+//    if (ui->wavelet_file->blockCount() != 1 && !to_load && !ui->analiza->isEnabled())
+    if (ui->wavelet_file->blockCount() > 0 && !to_load && !ui->analiza->isEnabled())
         ui->mouse_xpos->setText(linea);
 }
 
 // ************************************************************************************************
 void HPG_Dhunter::mouse_coordinates_ogl(int x, int y, int xR, int yR)
 {
+    // actualiza la posición inicial correctamente conforme al nivel de transformada
+    paso_visualizacion = uint(pow(2, ui->slider_nivel->value()));
+
     qDebug() << "coordenadas press x, y: " << x << ", " << y << "  -  coordenadas release xR, yR: " << xR << ", " << yR;
 
     int inicio = ui->rango_inferior->text().toInt() +
                  int(x * (ui->ancho_ventana->text().toFloat()
                        / ui->ventana_opengl->width()));
+    inicio     -= limite_inferior;
+    inicio     -= int(uint(inicio) % paso_visualizacion);
     int fin    = ui->rango_inferior->text().toInt() +
                  int(xR * (ui->ancho_ventana->text().toFloat()
                        / ui->ventana_opengl->width()));
@@ -1126,7 +1163,7 @@ void HPG_Dhunter::mouse_coordinates_ogl(int x, int y, int xR, int yR)
         qDebug() << "coordenada pasada a url: " << QString::number(inicio);
         QString url = "https://grch37.ensembl.org/Homo_sapiens/Location/View?r=" +
                        QString::number(cromosoma) + ":" +
-                       QString::number(inicio - 500) + "-" + QString::number(inicio + 500) +
+                       QString::number(uint(inicio) + limite_inferior - 500) + "-" + QString::number(fin + 500) +
                        ";db=core";
 
         if (ui->wavelet_file->blockCount() != 1 && !to_load && !ui->analiza->isEnabled())
@@ -1142,14 +1179,14 @@ void HPG_Dhunter::mouse_coordinates_ogl(int x, int y, int xR, int yR)
         ancho_ventana    = ui->ancho_ventana->text().toInt();
 
         qDebug() << "posicion inferior inicial: " << pos_inferior <<
-                    " -  posición inicial ratón: " << inicio <<
+                    " -  posición inicial ratón: " << uint(inicio) + limite_inferior <<
                     " -  posicion final ratón: " << fin <<
                     " -  ancho adn visualizado: " << ancho_ventana <<
                     " -  ancho ventana visualización: " << ui->ventana_opengl->width() ;
 
         // asignación de nuevos límites
         // ..en interface
-        ui->rango_inferior->setText(QString::number(inicio));
+        ui->rango_inferior->setText(QString::number(uint(inicio) + limite_inferior));
         if (fin - inicio > 100)
         {
             ui->rango_superior->setText(QString::number(fin));
@@ -1162,11 +1199,12 @@ void HPG_Dhunter::mouse_coordinates_ogl(int x, int y, int xR, int yR)
         }
 
         // ..actualización de valores en slider y scroll para realizar el análisis de la nueva región
-        ui->page->setValue(fin - inicio);
-        ui->scroll_adn->setValue(inicio);
+        ui->page->setValue(fin - int(uint(inicio) + limite_inferior));
+        ui->scroll_adn->setValue(int(uint(inicio) + limite_inferior));
 
         // actualización de señal visualizada
-        if (ui->wavelet_file->blockCount() != 1 && !to_load && !ui->analiza->isEnabled())
+        cuda_data.rango_inferior = size_t(inicio);
+        if (ui->wavelet_file->blockCount() >= 1 && !to_load && !ui->analiza->isEnabled())
             dibuja();
 
         qDebug() << "posicion inferior final: " << ui->rango_inferior->text() <<
@@ -1187,6 +1225,7 @@ void HPG_Dhunter::on_load_files_clicked()
     ui->analiza->setEnabled(false);
     ui->dmrs->setEnabled(false);
     ui->num_CpG_x_region->setEnabled(false);
+    ui->min_covSamples_x_region->setEnabled(false);
     ui->threshold->setEnabled(false);
     ui->dmr_dwt_level->setEnabled(false);
     ui->save_dmr_list->setEnabled(false);
@@ -1236,7 +1275,7 @@ void HPG_Dhunter::on_load_files_clicked()
         {
             QFile archivo;
             QString file = n + "/methylation_map_" +
-                           (_forward? "forward_" : "reverse_") +
+                           (_forward? (_reverse? "mix_" : "forward_") : "reverse_") +
                            QString::number(cromosoma) + ".csv";
 
             archivo.setFileName(file);
@@ -1258,7 +1297,7 @@ void HPG_Dhunter::on_load_files_clicked()
             {
                 QFile archivo;
                 QString file = n + "/methylation_map_" +
-                               (_forward? "forward_" : "reverse_") +
+                               (_forward? (_reverse? "mix_" : "forward_") : "reverse_") +
                                QString::number(cromosoma) + ".csv";
 
                 archivo.setFileName(file);
@@ -1311,21 +1350,6 @@ void HPG_Dhunter::on_load_files_clicked()
 
             // limpia la matrix de datos del cromosoma anterior
             ui->statusBar->showMessage("freeing memory");
-            for (vector<vector<double>> n : mc)
-            {
-                for (vector<double> m : n)
-                {
-                        m.clear();
-                        m.shrink_to_fit();
-                        vector<double>().swap(m);
-                }
-                n.clear();
-                n.shrink_to_fit();
-                vector<vector<double>>().swap(n);
-            }
-
-            mc.clear();
-            mc.shrink_to_fit();
             vector<vector<vector<double>>>().swap(mc);
 
             limite_inferior = 100000000;        // control de límite inferior
@@ -1442,8 +1466,12 @@ void HPG_Dhunter::on_analiza_clicked()
     cuda_data.pitch_2        = 0;
     cuda_data.h_haar_L.clear();
 
-    // informa de proceso de lectura de datos en marcha
-    ui->statusBar->showMessage("forming the full ADN segment...");
+    // informa de proceso de lectura de datos iniciado
+    ui->statusBar->showMessage("loading samples methylated signal to GPU...");
+    // necesita un pelín de tiempo de micro para mostrar el mensaje.
+    QEventLoop loop;
+    QTimer::singleShot(100, &loop, SLOT(quit()));
+    loop.exec();
 
     // borra la memoria previa utilizada
     if (cuda_data.mc_full != nullptr)
@@ -1465,55 +1493,32 @@ void HPG_Dhunter::on_analiza_clicked()
     // para trasvase de datos entre GPU y CPU con CUDA, la matriz debe ser contigua completa
     // reserva la memoria para la matriz de datos extendida
     cuda_data.mc_full = new float*[cuda_data.samples];
-    cuda_data.mc_full[0] = new float[uint(cuda_data.samples) * cuda_data.sample_num];
+    cuda_data.mc_full[0] = new float[uint(cuda_data.samples) * cuda_data.sample_num](); //paréntesis finales llamar constructor para rellenar con ceros
     for (int i = 1; i < cuda_data.samples; i++)
             cuda_data.mc_full[i] = cuda_data.mc_full[i - 1] + cuda_data.sample_num;
 
-    posicion_metilada.clear();
-    posicion_metilada.assign(uint(cuda_data.samples), vector<uint> (cuda_data.sample_num, 0));
+    vector<vector<uint>>(uint(mc.size()), vector<uint>()).swap(posicion_metilada);
 
     // copia de todos los datos a la matriz ampliada
     // --------------------------------------------------------------------------------------------
     uint muestra_seleccionada = 0;
-    uint cuenta_posiciones_metiladas;
-    uint pos_met;
+
     for (uint m = 0; m < mc.size(); m++)
     {
         // comprueba si la posición m corresponde a caso o control
         if (uint(mc[m][0][11]) == 0)
         {
-            cuenta_posiciones_metiladas = 0;
-            pos_met                     = 1;
-
             // comprueba si la posición está seleccionada para visualizar
             if (visualiza_casos[uint(mc[m][0][10])])
             {
-                // rellena con ceros la matriz de datos
-                for (uint n = 0; n < cuda_data.sample_num + 1; ++n)
-                    cuda_data.mc_full [muestra_seleccionada][n] = 0.0;
-
                 // rellena con datos las posiciones metiladas si supera la cobertura
                 for (uint k = 0; k < mc[m].size(); k++)
                     if(mc[m][k][ui->mC->isChecked() ? 2 : 8] >= ui->cobertura->value())
                     {
                         cuda_data.mc_full [muestra_seleccionada][uint(mc[m][k][0]) - limite_inferior] = float(mc[m][k][ui->mC->isChecked() ? 1 : 7]);
 
-                        cuenta_posiciones_metiladas++;
-
-                        while (pos_met < uint(mc[m][k][0]) - limite_inferior)
-                        {
-                            posicion_metilada[muestra_seleccionada][pos_met] = cuenta_posiciones_metiladas - 1;
-                            pos_met++;
-                        }
-                        posicion_metilada[muestra_seleccionada][uint(mc[m][k][0]) - limite_inferior] = cuenta_posiciones_metiladas;
+                        posicion_metilada[muestra_seleccionada].push_back(uint(mc[m][k][0] - limite_inferior));
                     }
-
-
-                while (pos_met < posicion_metilada[muestra_seleccionada].size())
-                {
-                    posicion_metilada[muestra_seleccionada][pos_met] = posicion_metilada[muestra_seleccionada][pos_met - 1];
-                    pos_met++;
-                }
 
                 h_haar_C_distribucion.push_back(0);
                 muestra_seleccionada++;
@@ -1521,38 +1526,17 @@ void HPG_Dhunter::on_analiza_clicked()
         }
         else
         {
-            cuenta_posiciones_metiladas = 0;
-            pos_met                     = 1;
-
             // comprueba si la posición está seleccionada para visualizar
             if (visualiza_control[uint(mc[m][0][10])])
             {
-                // rellena con ceros la matriz de datos
-                for (uint n = 0; n < cuda_data.sample_num + 1; ++n)
-                    cuda_data.mc_full [muestra_seleccionada][n] = 0.0;
-
                 // rellena con datos las posiciones metiladas si supera la cobertura
                 for (uint k = 0; k < mc[m].size(); k++)
                     if(mc[m][k][ui->mC->isChecked() ? 2 : 8] >= ui->cobertura->value())
                     {
                         cuda_data.mc_full [muestra_seleccionada][uint(mc[m][k][0]) - limite_inferior] = float(mc[m][k][ui->mC->isChecked() ? 1 : 7]);
 
-                        cuenta_posiciones_metiladas++;
-
-                        while (pos_met < uint(mc[m][k][0]) - limite_inferior)
-                        {
-                            posicion_metilada[muestra_seleccionada][pos_met] = cuenta_posiciones_metiladas - 1;
-                            pos_met++;
-                        }
-                        posicion_metilada[muestra_seleccionada][uint(mc[m][k][0]) - limite_inferior] = cuenta_posiciones_metiladas;
+                        posicion_metilada[muestra_seleccionada].push_back(uint(mc[m][k][0] - limite_inferior));
                     }
-
-
-                while (pos_met < posicion_metilada[muestra_seleccionada].size())
-                {
-                    posicion_metilada[muestra_seleccionada][pos_met] = posicion_metilada[muestra_seleccionada][pos_met - 1];
-                    pos_met++;
-                }
 
                 h_haar_C_distribucion.push_back(1);
                 muestra_seleccionada++;
@@ -1609,6 +1593,7 @@ void HPG_Dhunter::on_analiza_clicked()
     // habilita detección de DMRs
     ui->dmrs->setEnabled(true);
     ui->num_CpG_x_region->setEnabled(true);
+    ui->min_covSamples_x_region->setEnabled(true);
     ui->threshold->setEnabled(true);
     ui->dmr_dwt_level->setEnabled(true);
     ui->save_dmr_list->setEnabled(false);
@@ -1647,7 +1632,7 @@ void HPG_Dhunter::on_analiza_clicked()
 // ************************************************************************************************
 void HPG_Dhunter::dibuja()
 {
-//    INIT_TIMER
+    INIT_TIMER
 
     // inicializa la estructura de variables para el segmento a analizar ----------------------
     cuda_data.h_haar_L.clear();                                     // vector con número de datos por nivel
@@ -1655,7 +1640,7 @@ void HPG_Dhunter::dibuja()
     cuda_data.levels      = ui->slider_nivel->value();              // número de niveles a transformar
     cuda_data.data_adjust = 0;                                      // ajuste desfase en división por nivel para número impar de datos
 
-//    START_TIMER
+    START_TIMER
 
     // informa de proceso en barra inferior ---------------------------------------------------
     ui->statusBar->showMessage("working ...");
@@ -1688,7 +1673,7 @@ void HPG_Dhunter::dibuja()
 
 
 
-//    STOP_TIMER("tiempo dibujado")
+    STOP_TIMER("tiempo dibujado")
 
     // informa de proceso en barra inferior ---------------------------------------------------
     ui->statusBar->showMessage("transform finished -> data in GPU and CPU memory. Plotted");
@@ -1716,14 +1701,6 @@ void HPG_Dhunter::on_dmrs_clicked()
     START_TIMER
 
     // limpia matriz de resultados de procesamiento en GPU
-    foreach (vector<float> n, h_haar_C)
-    {
-        n.clear();
-        n.shrink_to_fit();
-        vector<float>().swap(n);
-    }
-    h_haar_C.clear();
-    h_haar_C.shrink_to_fit();
     vector<vector<float>>().swap(h_haar_C);
 
     // actualiza datos
@@ -1770,6 +1747,8 @@ void HPG_Dhunter::on_dmrs_clicked()
 
     uint paso = uint(pow(2, ui->dmr_dwt_level->value()));
 
+    vector<uint> idx_pos_met (uint(mc.size()), 0);
+
     // realiza el cálculo de medias de las muestras de control de los casos
     for (uint m = 0; m < uint(cuda_data.h_haar_L[0]); m++) // ...en cada posición
     {
@@ -1779,19 +1758,27 @@ void HPG_Dhunter::on_dmrs_clicked()
         uint numero_control = 0;
         for (uint i = 0; i < uint(cuda_data.samples); i++)
         {
-            if (h_haar_C_distribucion[i])
+            uint aux_1 = 0;
+            uint aux_2 = 0;
+
+            while (m * paso >= posicion_metilada[i][idx_pos_met[i] + aux_1] && idx_pos_met[i] + aux_1 < posicion_metilada[i].size() - 1)
+                aux_1++;
+
+            aux_2 = aux_1;
+
+            while ((m + 1) * paso > posicion_metilada[i][idx_pos_met[i] + aux_2] && idx_pos_met[i] + aux_2 < posicion_metilada[i].size() - 1)
+                aux_2++;
+
+            idx_pos_met[i] += aux_2;
+
+            if (aux_2 - aux_1 >= paso * uint(ui->num_CpG_x_region->value()) * 0.01)
             {
-                if (((m + 1) * paso < posicion_metilada[i].size() ? posicion_metilada[i][(m + 1) * paso] : posicion_metilada[i].back()) >
-                        posicion_metilada[i][m * paso] + (paso * uint(ui->num_CpG_x_region->value()) / 100))
+                if (int(mc[i][0][11]) == 0)
                 {
                     media_control += h_haar_C[i][m];
                     numero_control++;
                 }
-            }
-            else
-            {
-                if (((m + 1) * paso < posicion_metilada[i].size() ? posicion_metilada[i][(m + 1) * paso] : posicion_metilada[i].back()) >
-                        posicion_metilada[i][m * paso] + (paso * uint(ui->num_CpG_x_region->value()) / 100))
+                else
                 {
                     media_casos += h_haar_C[i][m];
                     numero_casos++;
@@ -1799,8 +1786,11 @@ void HPG_Dhunter::on_dmrs_clicked()
             }
         }
 
-        if (numero_casos > 0 && numero_control > 0)
+        if (numero_casos   > (uint(ficheros_case.length()    * (ui->min_covSamples_x_region->value() * 0.01))) &&
+            numero_control > (uint(ficheros_control.length() * (ui->min_covSamples_x_region->value() * 0.01))))          // al menos el XX% por grupo tienen cobertura
+        {
             dmr_diff[m] = (media_casos / numero_casos) - (media_control / numero_control);
+        }
     }
 
 
@@ -1895,15 +1885,19 @@ void HPG_Dhunter::hallar_dmrs()
                         match = true;
                         linea.append(" " + QString::fromStdString(cuda_data.refGen[mitad][0]) +
                                      " " + QString::fromStdString(cuda_data.refGen[mitad][1]) +
-                                     " -" + QString::number(stoul(cuda_data.refGen[mitad][3]) - posicion_dmr[q]));
-                    }
+                                     " -" + QString::number(stoul(cuda_data.refGen[mitad][3]) > posicion_dmr[q] ?
+                                                            stoul(cuda_data.refGen[mitad][3]) - posicion_dmr[q] :
+                                                            posicion_dmr[q] - stoul(cuda_data.refGen[mitad][3])));
+}
                     // el inicio dmr es mayor que inicio del gen anterior pero es menor que el fin del gen anterior
                     else if (gen_ant_fin > posicion_dmr[q])
                     {
                         match = true;
                         linea.append(" " + QString::fromStdString(cuda_data.refGen[mitad > 0? mitad - 1 : 0][0]) +
                                      " " + QString::fromStdString(cuda_data.refGen[mitad > 0? mitad - 1 : 0][1]) +
-                                     " +" + QString::number(posicion_dmr[q] - stoul(cuda_data.refGen[mitad > 0? mitad - 1 : 0][3])));
+                                     " +" + ((posicion_dmr[q] > stoul(cuda_data.refGen[mitad > 0? mitad - 1 : 0][3])) ?
+                                            QString::number(posicion_dmr[q] - stoul(cuda_data.refGen[mitad > 0? mitad - 1 : 0][3])) :
+                                            QString::number(stoul(cuda_data.refGen[mitad > 0? mitad - 1 : 0][3]) - posicion_dmr[q])));
                     }
 
 
@@ -2241,7 +2235,7 @@ void HPG_Dhunter::on_dmr_position_cursorPositionChanged()
 
         // mostrar gráfica de DMR
         // lanza la transformación
-        if (ui->wavelet_file->blockCount() != 1)
+        if (ui->wavelet_file->blockCount() >= 1)
             dibuja();
     }
 }
@@ -2336,6 +2330,7 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                 uint pos_inf;
                 uint pos_sup;
                 uint ancho_dmr;
+                vector<uint> posicion_muestra (mc.size(), 0);
 
                 // encabezado de la información del dmr
                 switch (ui->genome_reference->currentIndex())
@@ -2367,6 +2362,15 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                     pos_sup   = linea.split("-")[1].split(" ")[0].toUInt();
                     ancho_dmr = linea.split("-")[1].split(" ")[0].toUInt() - linea.split("-")[0].toUInt();
 
+                    // busca la posición inical
+                    for (uint j = 0; j < mc.size(); j++)
+                    {
+                        uint posicion = posicion_muestra[j];
+                        while (pos_inf > mc[j][posicion][0] && posicion < mc[j].size() - 1)
+                            posicion++;
+                        posicion_muestra[j] = posicion;
+                    }
+
                     // guarda información de cada fichero de la zona dmr detectada
                     for (uint j = 0; j < uint(mc.size()); j++)
                     {
@@ -2376,10 +2380,10 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                             {
                                 s << " " << ficheros_case.at(int(mc[j][0][10])).split("/").back() << " ";
 
-                                int cobertura_minima = 500000;
+                                int cobertura_minima = 500000000;
                                 int cobertura_maxima = 0;
                                 int cobertura_media  = 0;
-                                int distancia_minima = 500000;
+                                int distancia_minima = 500000000;
                                 int distancia_maxima = 0;
                                 int distancia_media  = 0;
                                 int sites_C          = 0;
@@ -2393,12 +2397,13 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                                 linea_detail.clear();
 
                                 // busca la posición inical
-                                uint posicion = 0;
-                                while (pos_inf > mc[j][posicion][0])
-                                    posicion++;
+                                uint posicion = posicion_muestra[j];
+                            //    while (pos_inf > mc[j][posicion][0])
+                            //        posicion++;
+                            //    posicion_muestra[j] = posicion;
 
                                 // búsqueda de valores a lo largo del DMR
-                                while (pos_sup > mc[j][posicion][0] && posicion < mc[j].size())
+                                while (pos_sup > mc[j][posicion][0] && posicion < mc[j].size() - 2)
                                 {
                                     // cobertura
                                     if (cobertura_minima >= mc[j][posicion][ui->mC->isChecked() ? 2 : 8])
@@ -2436,7 +2441,7 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                                 // valor medio dwt en la región identificada
                                 for (uint i = pos_dwt_ini; i <= pos_dwt_fin; i++)
                                     dwt_valor += h_haar_C[j][i];                    // (h_haar_C[f][i] / (pos_dwt_fin - pos_dwt_ini + 1));
-                                dwt_valor /= (pos_dwt_fin - pos_dwt_ini + 1);
+                                dwt_valor = pos_dwt_fin - pos_dwt_ini + 1 != 0 ? dwt_valor / (pos_dwt_fin - pos_dwt_ini + 1) : dwt_valor;
 
                                 // carga de resultado en línea de texto para mostrar
                                 if (cobertura_maxima >= ui->cobertura->value())
@@ -2473,10 +2478,10 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                             {
                                 s << " " << ficheros_control.at(int(mc[j][0][10])).split("/").back() << " ";
 
-                                int cobertura_minima = 500000;
+                                int cobertura_minima = 500000000;
                                 int cobertura_maxima = 0;
                                 int cobertura_media  = 0;
-                                int distancia_minima = 500000;
+                                int distancia_minima = 500000000;
                                 int distancia_maxima = 0;
                                 int distancia_media  = 0;
                                 int sites_C          = 0;
@@ -2490,12 +2495,13 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                                 linea_detail.clear();
 
                                 // busca la posición inical
-                                uint posicion = 0;
-                                while (pos_inf > mc[j][posicion][0])
-                                    posicion++;
+                                uint posicion = posicion_muestra[j];
+                            //    while (pos_inf > mc[j][posicion][0])
+                            //        posicion++;
+                            //    posicion_muestra[j] = posicion;
 
                                 // búsqueda de valores a lo largo del DMR
-                                while (pos_sup > mc[j][posicion][0] && posicion < mc[j].size())
+                                while (pos_sup > mc[j][posicion][0] && posicion < mc[j].size() - 2)
                                 {
                                     // cobertura
                                     if (cobertura_minima >= mc[j][posicion][ui->mC->isChecked() ? 2 : 8])
@@ -2533,7 +2539,7 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                                 // valor medio dwt en la región identificada
                                 for (uint i = pos_dwt_ini; i <= pos_dwt_fin; i++)
                                     dwt_valor += h_haar_C[j][i];                    // (h_haar_C[f][i] / (pos_dwt_fin - pos_dwt_ini + 1));
-                                dwt_valor /= (pos_dwt_fin - pos_dwt_ini + 1);
+                                dwt_valor = pos_dwt_fin - pos_dwt_ini + 1 != 0 ? dwt_valor / (pos_dwt_fin - pos_dwt_ini + 1) : dwt_valor;
 
                                 // carga de resultado en línea de texto para mostrar
                                 if (cobertura_maxima >= ui->cobertura->value())
@@ -2706,20 +2712,6 @@ void HPG_Dhunter::cromosoma_leido(int chrom)
     ui->statusBar->showMessage("chromosoma " + QString::number(chrom) + " read. Freeing temporary memory... please, wait a bit");
 
     // elimina la matriz auxiliar
-    for (vector<vector<double>> n : mc_aux)
-    {
-        for (vector<double> m : n)
-        {
-                m.clear();
-                m.shrink_to_fit();
-                vector<double>().swap(m);
-        }
-        n.clear();
-        n.shrink_to_fit();
-        vector<vector<double>>().swap(n);
-    }
-    mc_aux.clear();
-    mc_aux.shrink_to_fit();
     vector<vector<vector<double>>>().swap(mc_aux);
 
     // informa de carga terminada
