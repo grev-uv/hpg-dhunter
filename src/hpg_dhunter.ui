@@ -579,7 +579,7 @@
                <x>0</x>
                <y>20</y>
                <width>201</width>
-               <height>91</height>
+               <height>81</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_2">
@@ -1018,7 +1018,7 @@
             </property>
             <property name="text">
              <string>#poss     |            coverage         |          #sites with             |   distance between sites
-                    min  -  mid  -  max      C  -  noC  -  mC  -  hmC            min  -  mid  -  max</string>
+                    min  -  mid  -  max      Cm  -  Ch  -  mC  -  hmC            min  -  mid  -  max</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>

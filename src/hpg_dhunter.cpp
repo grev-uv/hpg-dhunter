@@ -1041,7 +1041,7 @@ void HPG_Dhunter::on_dmr_por_lote_clicked()
 
     // lanza la detección de DMRs
     QProcess p;
-    int dato = p.execute("/home/lifercor/programas/Bio-Informatica/qt/HPG_Dhunter/HPG_Dhunter_v2-6_FDD/HPG_Dhunter/hpg_dhunter");
+    int dato = p.execute("/home/lifercor/programas/Bio-Informatica/qt/HPG_Dhunter/HPG_Dhunter_v2-11_NewHMapper/HPG_Dhunter/hpg_dhunter");
     p.waitForFinished(-1); // evitamos problemas de terminación más allá de los 30 segundos
     p.close();
 
@@ -1786,8 +1786,8 @@ void HPG_Dhunter::on_dmrs_clicked()
             }
         }
 
-        if (numero_casos   > (uint(ficheros_case.length()    * (ui->min_covSamples_x_region->value() * 0.01))) &&
-            numero_control > (uint(ficheros_control.length() * (ui->min_covSamples_x_region->value() * 0.01))))          // al menos el XX% por grupo tienen cobertura
+        if (numero_casos   >= (uint(ficheros_case.length()    * (ui->min_covSamples_x_region->value() * 0.01))) &&
+            numero_control >= (uint(ficheros_control.length() * (ui->min_covSamples_x_region->value() * 0.01))))          // al menos el XX% por grupo tienen cobertura
         {
             dmr_diff[m] = (media_casos / numero_casos) - (media_control / numero_control);
         }
@@ -2354,7 +2354,7 @@ void HPG_Dhunter::on_save_dmr_list_clicked()
                     uint pos_dwt_fin = dmrs.at(i).split("//")[1].split(" ")[1].toUInt();
 
                     // encabezado de las características por fichero dentro de la zona dmr
-                    s << " sample dwt_value ratio C_positions cov_min cov_mid cov_max sites_C sites_noC sites_mC sites_hmC dist_min dist_mid dist_max\n";
+                    s << " sample dwt_value ratio C_positions cov_min cov_mid cov_max sites_Cm sites_Ch sites_mC sites_hmC dist_min dist_mid dist_max\n";
 
                     // información del dmr para obtener las características de cada muestra
                     linea     = dmrs.at(i);
@@ -2729,7 +2729,7 @@ void HPG_Dhunter::cromosoma_leido(int chrom)
     cuda_data.pitch          = 0;   // ajuste óptimo de memoria GPU para datos de cada muestra
     cuda_data.pitch_2        = 0;   // ajuste óptimo de memoria GPU para auxiliar
     cuda_data.sample_num     = 0;   // número de datos por muestra
-    cuda_data.samples        = 0;   // número de muestras a trasnformar
+    cuda_data.samples        = 0;   // número de muestras a transformar
     cuda_data.levels         = 0;   // número de niveles a transformar
     cuda_data.data_adjust    = 0;   // ajuste desfase en división por nivel para número impar de datos
     cuda_data.rango_inferior = 0;   // límite inferior ventana de datos a transformar
